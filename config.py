@@ -1,2 +1,0 @@
-BOT_TOKEN = "7641977337:AAHuBT_k8jGr1PcCJOZ3d8HN0vMn8zwlzAs"
-DATA_PATH = "storage/data.json"
