@@ -1,10 +1,57 @@
-# created by virtualenv automatically
-pyvenv.cfg
-.idea
-Lib/
-Scripts/
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.log
-logs/
-.venv
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtualenv
+.venv/
+env/
+venv/
 config.py
+
+# Poetry
+poetry.lock
+poetry.toml
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Pytest cache
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# MacOS
+.DS_Store
+
+# System files
+Thumbs.db
+Desktop.ini
+
+# Logs and temp
+*.log
+*.tmp
+
+# Local storage
+storage/data.json
+
+# Docker
+*.pid
+*.pid.lock
+docker-compose.override.yml

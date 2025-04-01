@@ -1,17 +1,13 @@
-[project]
+[tool.poetry]
 name = "rpg-bot"
 version = "0.1.0"
-description = ""
-authors = [
-    {name = "Your Name",email = "you@example.com"}
-]
-readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-    "aiogram (>=3,<4)"
-]
+description = "Телеграм бот для RPG игры"
+authors = ["Smacktur <smacktur@gmail.com>"]
 
+[tool.poetry.dependencies]
+python = ">=3.12"
+aiogram = "^3.19.0"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

@@ -1,43 +1,42 @@
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 # Установка Poetry
-RUN pip install poetry
+# Лучше использовать рекомендованный способ установки, чтобы избежать потенциальных конфликтов
+ENV POETRY_VERSION=1.8.3
+RUN pip install "poetry==$POETRY_VERSION"
 
-# Установка системных зависимостей (если используешь Pillow, matplotlib и пр.)
-RUN apt-get update && apt-get install -y \
+# Установка системных зависимостей
+# Объединяем команды apt-get для уменьшения слоев и размера образа
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    python3-dev \
+    libpq-dev \
+    # python3-dev уже есть в базовом образе python
     libjpeg-dev \
     zlib1g-dev \
-    libpng-dev \
     libfreetype6-dev \
-    liblcms2-dev \
-    libopenjp2-7 \
-    libtiff5 \
-    libwebp-dev \
-    tcl-dev tk-dev \
-    libharfbuzz-dev \
-    libfribidi-dev \
-    libxcb1-dev \
-    libx11-6 \
-    git \
+    # git нужен только если зависимости тянутся из git-репозиториев, иначе можно убрать
+    # git \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Рабочая директория
-WORKDIR /app
+# Устанавливаем рабочую директорию
+WORKDIR /rpg_bot
+# ENV PYTHONPATH не нужен при использовании `poetry run` и стандартной структуре
 
-# Переменная окружения
-ENV PYTHONPATH="/app"
+# Копируем файлы для установки зависимостей
+# Это позволяет Docker кэшировать слой установки зависимостей,
+# если эти файлы не менялись
+COPY pyproject.toml poetry.lock* ./
 
-# Копируем pyproject.toml и poetry.lock
-COPY pyproject.toml poetry.lock* /app/
+# Конфигурируем Poetry и устанавливаем ТОЛЬКО зависимости
+# Добавляем флаг --no-root
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-interaction --no-ansi --no-root
 
-# Установка зависимостей
-RUN poetry config virtualenvs.create false && poetry install --no-interaction --no-ansi
+# Копируем оставшийся код проекта
+# Этот слой будет пересобираться чаще, т.к. код меняется
+COPY . .
 
-# Копируем весь проект
-COPY . /app/
-
-# Команда запуска бота
-CMD ["poetry", "run", "python", "bot.py"]
+# Стартуем бота через poetry run
+# Это гарантирует, что зависимости будут доступны
+CMD ["python", "bot.py"]

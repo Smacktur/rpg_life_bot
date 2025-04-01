@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  rpg_bot:
+    build: .
+    container_name: rpg_life_bot
+    restart: unless-stopped
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+    volumes:
+      - ./storage:/rpg_bot/storage
+    command: poetry run python bot.py
