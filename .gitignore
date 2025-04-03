@@ -87,6 +87,7 @@ dmypy.json
 storage/data.json
 storage/cache/
 logs/
+backups/
 *.log
 *.log.*
 *.zip
