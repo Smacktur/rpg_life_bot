@@ -14,6 +14,33 @@ logs_dir.mkdir(exist_ok=True)
 current_date = datetime.now().strftime("%Y-%m-%d")
 log_file = logs_dir / f"{current_date}.log"
 
+class SimpleJsonFormatter(logging.Formatter):
+    """
+    Simple JSON formatter for standard logging
+    """
+    def format(self, record):
+        # Create a simple log record
+        log_record = {
+            "level": record.levelname.lower(),
+            "function": f"{record.module}:{record.funcName}:{record.lineno}",
+            "message": record.getMessage()
+        }
+        
+        # Add extra fields if available in record.__dict__
+        if hasattr(record, 'command_name'):
+            log_record['command_name'] = record.command_name
+        if hasattr(record, 'username'):
+            log_record['username'] = record.username
+            
+        # Get extras from LoggerAdapter
+        if hasattr(record, 'args') and isinstance(record.args, dict):
+            if 'command_name' in record.args:
+                log_record['command_name'] = record.args['command_name']
+            if 'username' in record.args:
+                log_record['username'] = record.args['username']
+            
+        return json.dumps(log_record)
+
 class InterceptHandler(logging.Handler):
     """
     Intercept standard logging messages toward Loguru.
@@ -29,29 +56,40 @@ class InterceptHandler(logging.Handler):
         except ValueError:
             level = record.levelno
             
+        # Extract extra fields if available
+        extras = {}
+        if hasattr(record, 'command_name'):
+            extras['command_name'] = record.command_name
+        if hasattr(record, 'username'):
+            extras['username'] = record.username
+            
         # Find caller from where the logged message originated
         frame, depth = logging.currentframe(), 2
         while frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back
             depth += 1
             
-        logger.opt(depth=depth, exception=record.exc_info).log(
+        # Pass the message to loguru
+        logger_instance = logger.bind(**extras) if extras else logger
+        logger_instance.opt(depth=depth, exception=record.exc_info).log(
             level, record.getMessage()
         )
 
 def json_serializer(record):
     """Serialize log record to JSON format."""
-    # Base log fields
+    # Base log fields with minimal information
     output = {
         "level": record["level"].name.lower(),
         "function": f"{record['name']}:{record['function']}:{record['line']}",
-        "message": record["message"],
-        "time": record["time"].strftime("%Y-%m-%dT%H:%M:%SZ")
+        "message": record["message"]
     }
     
-    # Add extra fields if available
-    for k, v in record["extra"].items():
-        output[k] = v
+    # Add command_name and username if available
+    if "command_name" in record["extra"]:
+        output["command_name"] = record["extra"]["command_name"]
+    
+    if "username" in record["extra"]:
+        output["username"] = record["extra"]["username"]
     
     return json.dumps(output)
 
@@ -63,11 +101,36 @@ def setup_logging():
     # Remove default loguru handler
     logger.remove()
     
-    # Add console handler with JSON formatting
+    # Configure standard logging first
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    
+    # Clear any existing handlers
+    if root_logger.hasHandlers():
+        root_logger.handlers.clear()
+    
+    # Set up console handler with JSON formatter
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(SimpleJsonFormatter())
+    root_logger.addHandler(console_handler)
+    
+    # Set up file handler with JSON formatter
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(SimpleJsonFormatter())
+    root_logger.addHandler(file_handler)
+    
+    # Disable aiogram and other library logging to avoid duplicate entries
+    logging.getLogger("aiogram").setLevel(logging.WARNING)
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
+    
+    # Add loguru handlers for our own logging
     logger.add(
         sys.stdout,
         serialize=json_serializer,
         level="INFO",
+        enqueue=True,  # Safe for concurrent writes
+        backtrace=False,  # Simpler error logs
+        diagnose=False,  # Cleaner output
     )
     
     # Add file handler with JSON formatting
@@ -78,20 +141,15 @@ def setup_logging():
         rotation="1 day",
         retention="30 days",
         compression="zip",
+        enqueue=True,
+        backtrace=False,
+        diagnose=False,
     )
-    
-    # Intercept standard logging
-    logging.basicConfig(handlers=[InterceptHandler()], level=0)
     
     # Disable uvicorn access logging if needed
     logging.getLogger("uvicorn.access").disabled = True
     
-    # Replace standard logger with loguru
-    for name in logging.root.manager.loggerDict:
-        logging.getLogger(name).handlers = [InterceptHandler()]
-        
-    logging.getLogger("root").handlers = [InterceptHandler()]
-    
-    logger.info("Logging system configured")
+    # Log setup completion
+    logging.info("Logging system configured with simple JSON format")
     
     return logger 

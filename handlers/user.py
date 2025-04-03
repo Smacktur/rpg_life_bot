@@ -4,8 +4,10 @@ import json
 from utils.quest_logic import get_quest_by_phase
 from pathlib import Path
 from datetime import datetime
+import logging
 
 router = Router()
+logger = logging.getLogger("handlers.user")
 DATA_FILE = Path("storage/data.json")
 
 PHASE_LABELS = {
@@ -14,8 +16,14 @@ PHASE_LABELS = {
     "fog": "😵 Подвис"
 }
 
+@router.message(F.text == "/me")
 async def show_status(message: Message):
     user_id = str(message.from_user.id)
+    username = message.from_user.username or f"user_{user_id}"
+    
+    # Логируем вызов команды /me с пользователем
+    logger.info(f"Command /me from user {user_id}", 
+                extra={"command_name": "/me", "username": username})
 
     if not DATA_FILE.exists():
         await message.answer("Нет данных. Начни с /start_day")
@@ -93,7 +101,14 @@ async def help_cmd(message: Message):
 
 @router.message(F.text == "/today")
 async def handle_today(message: Message):
-    text = render_today_message(str(message.from_user.id))
+    user_id = str(message.from_user.id)
+    username = message.from_user.username or f"user_{user_id}"
+    
+    # Логируем вызов команды
+    logger.info(f"Command /today from user {user_id}", 
+                extra={"command_name": "/today", "username": username})
+                
+    text = render_today_message(user_id)
     await message.answer(text)
 
 def render_today_message(user_id: str) -> str:

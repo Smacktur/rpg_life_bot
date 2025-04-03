@@ -1,8 +1,68 @@
 import asyncio
 import os
+import logging
+import json
+import sys
 from datetime import datetime
 from pathlib import Path
 
+# Настраиваем логирование до импорта других модулей
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        log_record = {
+            "level": record.levelname.lower(),
+            "function": f"{record.module}:{record.funcName}:{record.lineno}",
+            "message": record.getMessage()
+        }
+        
+        # Добавляем дополнительные поля, если они есть
+        # Проверяем наличие поля в атрибутах
+        if hasattr(record, 'command_name'):
+            log_record['command_name'] = record.command_name
+        if hasattr(record, 'username'):
+            log_record['username'] = record.username
+        
+        # Проверяем наличие поля в extra аргументах
+        if hasattr(record, 'args') and isinstance(record.args, dict):
+            if 'command_name' in record.args:
+                log_record['command_name'] = record.args['command_name']
+            if 'username' in record.args:
+                log_record['username'] = record.args['username']
+                
+        # Проверяем наличие поля в __dict__
+        if '__dict__' in dir(record):
+            if 'command_name' in record.__dict__:
+                log_record['command_name'] = record.__dict__['command_name']
+            if 'username' in record.__dict__:
+                log_record['username'] = record.__dict__['username']
+            
+        return json.dumps(log_record)
+
+# Конфигурируем корневой логгер
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+
+# Очищаем существующие обработчики
+if root_logger.hasHandlers():
+    root_logger.handlers.clear()
+
+# Создаем обработчик для консоли
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(JSONFormatter())
+root_logger.addHandler(console_handler)
+
+# Устанавливаем уровни логирования
+logging.getLogger("aiogram").setLevel(logging.WARNING)
+logging.getLogger("asyncio").setLevel(logging.WARNING)
+logging.getLogger("uvicorn.access").disabled = True
+# Устанавливаем INFO вместо DEBUG для middleware.logging
+logging.getLogger("middleware").setLevel(logging.INFO)
+
+# Создаем объект логгера для использования в нашем коде
+logger = logging.getLogger("bot")
+logger.info("Logging system initialized with JSON format")
+
+# Теперь импортируем остальные модули
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
@@ -16,7 +76,6 @@ from services.reminder_service import ReminderService
 from utils.storage import Storage
 from middleware.logging import LoggingMiddleware
 from middleware.error_handler import ErrorHandlerMiddleware
-from core.logger import setup_logging
 from core.service_provider import ServiceProvider
 
 from handlers import (
@@ -31,9 +90,6 @@ from handlers import (
     buttons_router,
     faq_router,
 )
-
-# Set up enhanced logging
-logger = setup_logging()
 
 # Initialize bot
 bot = Bot(
