@@ -1,0 +1,1 @@
+# This file ensures that the migrations/versions directory is tracked by git 

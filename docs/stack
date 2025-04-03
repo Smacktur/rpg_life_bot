@@ -1,0 +1,7 @@
+Мой текущий стек проекта:
+- Python 3.12
+- Aiogram 3.19
+- Docker (docker compose)
+- PostgreSQL
+- Poetry
+- Celery
