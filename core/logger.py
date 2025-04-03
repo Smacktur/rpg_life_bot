@@ -39,6 +39,22 @@ class InterceptHandler(logging.Handler):
             level, record.getMessage()
         )
 
+def json_serializer(record):
+    """Serialize log record to JSON format."""
+    # Base log fields
+    output = {
+        "level": record["level"].name.lower(),
+        "function": f"{record['name']}:{record['function']}:{record['line']}",
+        "message": record["message"],
+        "time": record["time"].strftime("%Y-%m-%dT%H:%M:%SZ")
+    }
+    
+    # Add extra fields if available
+    for k, v in record["extra"].items():
+        output[k] = v
+    
+    return json.dumps(output)
+
 def setup_logging():
     """
     Configure logging for the application.
@@ -50,24 +66,14 @@ def setup_logging():
     # Add console handler with JSON formatting
     logger.add(
         sys.stdout,
-        format=lambda record: json.dumps({
-            "level": record["level"].name.lower(),
-            "function": f"{record['name']}:{record['function']}:{record['line']}",
-            "message": record["message"],
-            "time": record["time"].strftime("%Y-%m-%dT%H:%M:%SZ")
-        }),
+        serialize=json_serializer,
         level="INFO",
     )
     
     # Add file handler with JSON formatting
     logger.add(
         log_file,
-        format=lambda record: json.dumps({
-            "level": record["level"].name.lower(),
-            "function": f"{record['name']}:{record['function']}:{record['line']}",
-            "message": record["message"],
-            "time": record["time"].strftime("%Y-%m-%dT%H:%M:%SZ")
-        }),
+        serialize=json_serializer,
         level="DEBUG",
         rotation="1 day",
         retention="30 days",
