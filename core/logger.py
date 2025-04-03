@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import json
 from pathlib import Path
 from datetime import datetime
 from loguru import logger
@@ -46,23 +47,27 @@ def setup_logging():
     # Remove default loguru handler
     logger.remove()
     
-    # Add console handler with color formatting
+    # Add console handler with JSON formatting
     logger.add(
         sys.stdout,
-        format=(
-            "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
-            "<level>{level: <8}</level> | "
-            "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
-            "<level>{message}</level>"
-        ),
+        format=lambda record: json.dumps({
+            "level": record["level"].name.lower(),
+            "function": f"{record['name']}:{record['function']}:{record['line']}",
+            "message": record["message"],
+            "time": record["time"].strftime("%Y-%m-%dT%H:%M:%SZ")
+        }),
         level="INFO",
-        colorize=True,
     )
     
-    # Add file handler with detailed formatting
+    # Add file handler with JSON formatting
     logger.add(
         log_file,
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+        format=lambda record: json.dumps({
+            "level": record["level"].name.lower(),
+            "function": f"{record['name']}:{record['function']}:{record['line']}",
+            "message": record["message"],
+            "time": record["time"].strftime("%Y-%m-%dT%H:%M:%SZ")
+        }),
         level="DEBUG",
         rotation="1 day",
         retention="30 days",

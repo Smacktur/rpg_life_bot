@@ -36,55 +36,40 @@ async def handle_faq_command(message: Message):
 @router.message()
 async def handle_keyboard_button(message: Message, state: FSMContext):
     text = message.text.strip()
-    logging.info(f"[BUTTONS] Получено сообщение: {text!r}")
 
     if "Мой статус" in text:
-        logging.info("[BUTTONS] Вызов: СТАТУС")
         await show_status(message)
 
     elif "Сегодня" in text:
-        logging.info("[BUTTONS] Вызов: СЕГОДНЯ")
         await handle_start_day(message)
 
     elif "Фокус" in text:
-        logging.info("[BUTTONS] Вызов: TODAY")
         text = render_today_message(str(message.from_user.id))
         await message.answer(text)
 
     elif "Квесты" in text:
-        logging.info("[BUTTONS] Вызов: КВЕСТЫ")
         await handle_status(message)
 
     elif "Новый квест" in text:
-        logging.info("[BUTTONS] Вызов: НОВЫЙ КВЕСТ")
         await start_add_quest(message, state)
 
     elif "Завершить" in text:
-        logging.info("[BUTTONS] Вызов: ЗАВЕРШИТЬ КВЕСТ")
         await handle_done(message)
 
     elif "Инсайт" in text:
-        logging.info("[BUTTONS] Вызов: ИНСАЙТ")
         await handle_insight(message, state)
 
     elif "Рефлексия" in text:
-        logging.info("[BUTTONS] Вызов: РЕФЛЕКСИЯ")
         await handle_reflect_start(message, state)
 
     elif "Настройки" in text:
-        logging.info("[BUTTONS] Вызов: НАСТРОЙКИ")
         await show_settings(message)
 
     elif "Помощь" in text:
-        logging.info("[BUTTONS] Вызов: HELP")
         await help_cmd(message)
 
     elif "Удалить квест" in text:
-        logging.info("[BUTTONS] Вызов: УДАЛИТЬ КВЕСТ")
         await handle_delete_quest(message)
-
-    else:
-        logging.info("[BUTTONS] Неизвестная команда")
 
 # Отмена через inline кнопки
 @router.callback_query(F.data == "cancel_insight")
